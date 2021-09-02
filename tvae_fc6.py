@@ -127,10 +127,9 @@ def calculate_main(feature, classifier,dirc):
     return d
 
 """
-Evaluate the Selectivity of neurons:
-First, save all the preferences of test images for both face or object
-Second, calculate the d' according to the equation
-Finally, save the d'
+eval_feature function has two function:
+First, Calculating the response profile: Pearson correlation w.r.t cortical distance.
+Second, Calculating the selectivity maps with actual images
 """
 
 def correlation(s):
@@ -181,6 +180,12 @@ def eval_feature(feature, model, train_loader,plot= False,corr=False):
         correlation(all_s)
     return
 
+
+"""
+Main function is for training the model, and evaluate the selectivity of neurons
+"""
+
+
 def main():
     config = {
         'savedir': './result/fc6_big_lr5_std10_k15_b40_exp4',
@@ -199,7 +204,7 @@ def main():
     optimizer = optim.SGD(model.parameters(),
                            lr=config['lr'],
                            momentum=config['momentum'])
-    scheduler = StepLR(optimizer, step_size=1, gamma=1.0)
+
     for e in range(config['max_epochs']):
         print('Epoch', e+1)
 
@@ -220,6 +225,11 @@ def main():
     return model
 
 
+"""
+Eval function is for Pearson correlation and also all for the selectivity map with actual images
+"""
+
+
 def eval():
     config = {
         'savedir': './result/sub_lr5_std10_k7',
@@ -229,7 +239,7 @@ def eval():
         'max_epochs': 50,
     }
 
-    train_loader = loaddata(config['batchsize'],'/project/qgao/subcombine/subsubtrain')
+    train_loader = loadtraning(config['batchsize'],'/project/qgao/subcombine/subsubtrain')
 
     feature = Feature().to('cuda')
     model = torch.load('./result/fc6_big_lr5_std10_k15_b15')
@@ -237,6 +247,10 @@ def eval():
     eval_feature(feature, model, train_loader,plot=False, corr=True)
 
     return
+
+"""
+Test function is for testing four different models and different categories
+"""
 
 def test():
     config = {
@@ -252,6 +266,10 @@ def test():
         model.eval()
         d = calculate_main(feature, model,dirc='/project/qgao/birds')
         np.save(config['savedir']+i, d)
+
+
+## call for the function
+
 
 #main()
 test()

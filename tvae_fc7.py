@@ -5,6 +5,8 @@ from torch import optim
 from torch.optim.lr_scheduler import StepLR
 from models.tvae_fc7 import TVAE_fc7
 from models.tvae_fc6 import TVAE_fc6
+import torchvision
+from scipy.stats import pearsonr
 import matplotlib.pyplot as plt
 import numpy as np
 import torchvision.datasets as sets
@@ -123,7 +125,12 @@ def calculate_main(feature, classifier):
     return d
 
 
-from scipy.stats import pearsonr
+"""
+eval_feature function has two function:
+First, Calculating the response profile: Pearson correlation w.r.t cortical distance.
+Second, Calculating the selectivity maps with actual images
+"""
+
 def correlation(s):
     s = s.numpy().reshape(-1,64,64)
     possible ={}
@@ -151,66 +158,6 @@ def correlation(s):
     
     return possible
 
-
-
-def main():
-    config = {
-        'savedir': './result/sub_lr5_10_big_e5_k15_exp4',
-        'lr': 1e-5,
-        'momentum': 0.9,
-        'batchsize': 100,
-        'max_epochs': 5,
-    }
-
-    ##load training dataset
-    train_loader = loadtraning(config['batchsize'])
-
-    ##build model
-    feature = Feature().to('cuda')
-    model = create_model(s_dim=4096, kernel_size=(15,15)).to('cuda')
-    #model = torch.load('./result/sub_lr5_std10_k5_big')
-
-    optimizer = optim.SGD(model.parameters(),
-                           lr=config['lr'],
-                           momentum=config['momentum'])
-    scheduler = StepLR(optimizer, step_size=50, gamma=0.1)
-
-    for e in range(config['max_epochs']):
-        print('Epoch', e+1)
-        total_loss, total_recon, total_kl, num_batches = train_epoch(feature, model, optimizer,
-                                                                     train_loader,e)
-
-        print('[%d] Epoch Avg Loss: %.4f, Epoch Avg Recon: %.4f, Epoch Avg KL : %.4f' % (e + 1, total_loss / num_batches,
-                                                                     total_recon / num_batches, total_kl / num_batches))
-
-        scheduler.step()
-    torch.save(model,config['savedir'])
-
-    feature.eval()
-    model.eval()
-    d = calculate_main(feature, model)
-    np.save(config['savedir'], d)
-
-    return model
-
-
-def test():
-    config = {
-        'savedir': './result/body_',
-    }
-    modellist=['sub_lr5_10_big_e5_k15','sub_lr5_10_big_e5_k15_exp2','sub_lr5_10_big_e5_k15_exp3','sub_lr5_10_big_e5_k15_exp4']
-    feature = Feature().to('cuda')
-    for i in modellist:
-        #feature = Feature().to('cuda')
-        model = torch.load('./result/'+i)
-
-        feature.eval()
-        model.eval()
-        d = calculate_main(feature, model)
-        np.save(config['savedir']+i, d)
-
-
-import torchvision
 def Plot_MaxActImg(all_s, all_x):
     max_xs = []
     for s_idx in range(all_s.shape[1]):
@@ -252,6 +199,59 @@ def eval_feature(feature, model, train_loader,plot= False,corr=False):
     return
 
 
+
+
+"""
+Main function is for training the model, and evaluate the selectivity of neurons
+"""
+
+
+def main():
+    config = {
+        'savedir': './result/sub_lr5_10_big_e5_k15_exp4',
+        'lr': 1e-5,
+        'momentum': 0.9,
+        'batchsize': 100,
+        'max_epochs': 5,
+    }
+
+    ##load training dataset
+    train_loader = loadtraning(config['batchsize'])
+
+    ##build model
+    feature = Feature().to('cuda')
+    model = create_model(s_dim=4096, kernel_size=(15,15)).to('cuda')
+    #model = torch.load('./result/sub_lr5_std10_k5_big')
+
+    optimizer = optim.SGD(model.parameters(),
+                           lr=config['lr'],
+                           momentum=config['momentum'])
+
+
+    for e in range(config['max_epochs']):
+        print('Epoch', e+1)
+        total_loss, total_recon, total_kl, num_batches = train_epoch(feature, model, optimizer,
+                                                                     train_loader,e)
+
+        print('[%d] Epoch Avg Loss: %.4f, Epoch Avg Recon: %.4f, Epoch Avg KL : %.4f' % (e + 1, total_loss / num_batches,
+                                                                     total_recon / num_batches, total_kl / num_batches))
+
+        scheduler.step()
+    torch.save(model,config['savedir'])
+    feature.eval()
+    model.eval()
+    d = calculate_main(feature, model)
+    np.save(config['savedir'], d)
+
+    return model
+
+
+
+"""
+Eval function is for Pearson correlation and also all for the selectivity map with actual images
+"""
+
+
 def eval():
     config = {
         'savedir': './result/sub_lr5_std10_k7',
@@ -270,6 +270,29 @@ def eval():
 
     return
 
+
+"""
+Test function is for testing four different models and different categories
+"""
+
+def test():
+    config = {
+        'savedir': './result/body_',
+    }
+    modellist=['sub_lr5_10_big_e5_k15','sub_lr5_10_big_e5_k15_exp2','sub_lr5_10_big_e5_k15_exp3','sub_lr5_10_big_e5_k15_exp4']
+    feature = Feature().to('cuda')
+    for i in modellist:
+        #feature = Feature().to('cuda')
+        model = torch.load('./result/'+i)
+
+        feature.eval()
+        model.eval()
+        d = calculate_main(feature, model)
+        np.save(config['savedir']+i, d)
+
+
+
+## call for the function
 
 #main()
 #test()
