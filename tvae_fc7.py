@@ -3,7 +3,8 @@ import torch
 import torch.nn as nn
 from torch import optim
 from torch.optim.lr_scheduler import StepLR
-from models.tvae_general import TVAE_general
+from models.tvae_fc7 import TVAE_fc7
+from models.tvae_fc6 import TVAE_fc6
 import matplotlib.pyplot as plt
 import numpy as np
 import torchvision.datasets as sets
@@ -11,14 +12,17 @@ import torchvision.transforms as transforms
 import sys
 import warnings
 from data.data import *
-
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
 
-def create_model(s_dim, kernel_size):
-    return TVAE_general(4096, s_dim, kernel_size)
+"""
+Create the FC7 model and use a pre-trained model to extract features
+"""
 
 Alex = torch.hub.load('pytorch/vision:v0.6.0', 'alexnet', pretrained=True)
+
+def create_model(s_dim, kernel_size):
+    return TVAE_fc7(4096, s_dim, kernel_size)
 
 class Feature(nn.Module):
 
@@ -42,7 +46,9 @@ class Feature(nn.Module):
 
 
 
-
+"""
+Training the model
+"""
 def train_epoch(feature, model, optimizer, train_loader,e):
     total_loss = 0
     total_kl = 0
@@ -75,11 +81,15 @@ def train_epoch(feature, model, optimizer, train_loader,e):
             s = s.cpu().detach()
             Plot_Covariance_Matrix(s**2, s**2,e)
 
-
-
     return total_loss, total_recon, total_kl, num_batches
 
 
+"""
+Evaluate the Selectivity of neurons:
+First, save all the preferences of test images for both face or object
+Second, calculate the d' according to the equation
+Finally, save the d'
+"""
 def neurons_d(feature, classifier, train):
     face = torch.zeros([1, 4096])
     for inputs, classes in train:
@@ -107,7 +117,6 @@ def calculate(face, obj):
 def calculate_main(feature, classifier):
     face_train = loadsampleface('/project/qgao/bodyhand')
     object_train = loadsampleobject()
-
     face = neurons_d(feature, classifier, face_train)
     obj = neurons_d(feature, classifier, object_train)
     d = calculate(face, obj)

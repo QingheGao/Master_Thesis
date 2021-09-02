@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from layers.losses import KL_gaussian, KL_gaussian_exact
 
-class TVAE_general(nn.Module):
+class TVAE_fc7(nn.Module):
     def __init__(self, in_channels, s_dim, kernel_size,init_weights=False):
-        super(TVAE_general, self).__init__()
+        super(TVAE_fc7, self).__init__()
 
         self.kernel_size = kernel_size
         self.s_dim = s_dim
