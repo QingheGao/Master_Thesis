@@ -108,8 +108,8 @@ def neurons_d(feature, classifier, train):
 def calculate(face, obj):
     mean_face = np.mean(face, axis=0)
     mean_object = np.mean(obj, axis=0)
-    std_face = np.mean(face, axis=0)
-    std_object = np.mean(obj, axis=0)
+    std_face = np.std(face, axis=0)
+    std_object = np.std(obj, axis=0)
     d = (mean_face - mean_object) / np.sqrt((std_face ** 2 + std_object ** 2) / 2)
     k = d[d > 0.85]
     z = d[d < -0.85]
